@@ -1,12 +1,9 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 require('dotenv').config()
-const UserAccountController = require('./api/users.api')
-const LinksController = require('./api/links.api')
-const {Links} = require('./models/links');
-
-
-require("./models/users")
+const sessions = require('./api/sessions.api')
+const users = require('./api/users.api')
+const theaters = require('./api/theaters.api')
 
 
 console.log(`MONGO_DB_URI:${process.env.MONGO_DB_URI}`)
@@ -20,35 +17,23 @@ app.use(bodyParser.json());
 const setup = async () => {
     await Mongo.setupDb(process.env.MONGO_DB_URI);
 
-    app.use(UserAccountController.router);
-    app.use(LinksController.router)
+    app.use(sessions.router);
 
-    app.get("/shortLink/:cut", async (req, res) => {
-        const cut = req.params.cut;
-      
-        const dbQuery = {};
-      
-        if (cut) {
-          dbQuery["link.cut"] = cut;
-        }
-      
-        try {
-          const doc = await Links.findOne(dbQuery);
-      
-          if (!doc) {
-            return res.status(400).send({ message: '400, Short link was not found' });
-          }
-      
-          if (doc.expiredAt && doc.expiredAt < Date.now()) {
-            return res.status(400).send({ message: "400, Link was expired" });
-          }
-      
-          return res.redirect(doc.link.original);
-        } catch (err) {
-          console.error(err);
-          return res.status(400).send({ message: err.toString() });
-        }
-      });
+    app.use(theaters.router);
+
+    app.use(users.router);
+
+    /*app.post("/sessions", async (req, res) => {
+        const { name, email, text } = req.body;
+
+        const doc = new Sessions({
+            name, email, text, date: new Date()
+        });
+
+        const elem = await doc.save()
+
+        return res.status(200).send(elem);
+    });*/
 
     app.listen(process.env.PORT, () => {
         console.log("Server was started on 8080 port.")
