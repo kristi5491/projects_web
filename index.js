@@ -1,58 +1,48 @@
-const express = require("express");
-const bodyParser = require("body-parser");
-require('dotenv').config()
-const UserAccountController = require('./api/users.api')
-const LinksController = require('./api/links.api')
-const {Links} = require('./models/links');
+const { text } = require('body-parser');
+const fs = require('fs')
 
+const scenario = fs.readFileSync('./scenario.txt', (err, data) => {
+    if (err) {
+      console.error(err);
+      return;
+    }
+    console.log(data);
+})
+const resultNames = scenario.toString();
+const results_1 = resultNames.match(/^[a-z]+:/gmi);
 
-require("./models/users")
+const resultText = scenario.toString();
+const results_2 = resultText.match(/[a-z]+.+[?,;.:!]/gmi);
 
+const charachters = [];
+const charachtersSpeeches = [];
+results_1.forEach(characterName => {
+ const name = characterName.slice(0, -1)
+    if (!charachters.includes(name)) {
+      charachters.push(name);
+    }
+})
 
-console.log(`MONGO_DB_URI:${process.env.MONGO_DB_URI}`)
-console.log(`PORT:${process.env.PORT}`)
-
-const Mongo = require('./setup/mongoose')
-
-const app = express();
-app.use(bodyParser.json());
-
-const setup = async () => {
-    await Mongo.setupDb(process.env.MONGO_DB_URI);
-
-    app.use(UserAccountController.router);
-    app.use(LinksController.router)
-
-    app.get("/shortLink/:cut", async (req, res) => {
-        const cut = req.params.cut;
-      
-        const dbQuery = {};
-      
-        if (cut) {
-          dbQuery["link.cut"] = cut;
-        }
-      
-        try {
-          const doc = await Links.findOne(dbQuery);
-      
-          if (!doc) {
-            return res.status(400).send({ message: '400, Short link was not found' });
-          }
-      
-          if (doc.expiredAt && doc.expiredAt < Date.now()) {
-            return res.status(400).send({ message: "400, Link was expired" });
-          }
-      
-          return res.redirect(doc.link.original);
-        } catch (err) {
-          console.error(err);
-          return res.status(400).send({ message: err.toString() });
-        }
-      });
-
-    app.listen(process.env.PORT, () => {
-        console.log("Server was started on 8080 port.")
-    });
+for(let num = 0; num < charachters.length; num += 1) {
+  charachtersSpeeches[num] = '';
 }
 
-setup();
+results_2.forEach(texts => {
+  let result = texts.match(/^[a-z]+:/gmi);
+  let notArray = result[0]
+  let resSlice = notArray.slice(0, -1);
+
+  for(let i = 0; i < charachters.length; i++) {
+    if(resSlice === charachters[i]) {
+      const textSlice = texts.slice(charachters[i].length + 2)
+      charachtersSpeeches[i] += textSlice;
+      charachtersSpeeches[i] += ' \n';
+    }
+  }
+})
+
+console.log(charachters);
+
+for(let num = 0; num < charachters.length; num += 1) {
+  fs.writeFileSync(`${charachters[num]}.txt`, charachtersSpeeches[num])
+}
